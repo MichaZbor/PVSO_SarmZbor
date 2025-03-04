@@ -22,11 +22,14 @@ print('Exposure was set to %i us' %cam.get_exposure())
 #create instance of Image to store image data and metadata
 img = xiapi.Image()
 
+dst = cv2.undistort(img, Param["mtx"], Param["dist"], None,Param["newcameramtx"])
+x, y, w, h = Param["roi"]
+dst = dst[y:y + h, x:x + w]
+
 #start data acquisition
 print('Starting data acquisition...')
 cam.start_acquisition()
 
-image_count = 0
 
 while cv2.waitKey() != ord('q'):
 
@@ -34,8 +37,6 @@ while cv2.waitKey() != ord('q'):
         image = img.get_image_data_numpy()
         image = cv2.resize(image, (500, 500))
         cv2.imshow("test", image)
-
-
 
 #stop data acquisition
 print('Stopping acquisition...')

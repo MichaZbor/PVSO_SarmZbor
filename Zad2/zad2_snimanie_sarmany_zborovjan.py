@@ -5,7 +5,7 @@ import numpy as np
 WIDTH = 240
 HEIGHT = 240
 
-                                                                                                                                                                                         cam = xiapi.Camera()
+cam = xiapi.Camera()
 
 #start communication
 #to open specific device, use:
