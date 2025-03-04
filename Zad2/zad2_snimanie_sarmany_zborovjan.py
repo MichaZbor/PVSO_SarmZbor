@@ -5,7 +5,7 @@ import numpy as np
 WIDTH = 240
 HEIGHT = 240
 
-cam = xiapi.Camera()
+                                                                                                                                                                                         cam = xiapi.Camera()
 
 #start communication
 #to open specific device, use:
@@ -36,7 +36,7 @@ while cv2.waitKey() != ord('q'):
         image = cv2.resize(image, (240, 240))
         cv2.imshow("test", image)
         image_count += 1
-        filename = f"ob{image_count}.png"
+        filename = f"Pics/ob{image_count}.png"
         cv2.imwrite(filename, image)
         print(f"Image saved: {filename}")
         if image_count == 21:
