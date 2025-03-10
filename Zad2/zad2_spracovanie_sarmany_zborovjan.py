@@ -2,12 +2,12 @@ from ximea import xiapi
 import cv2
 import numpy as np
 
-# termination criteria
+# termination criteria (end if accuracy improvement less 0.001 or after 30 iterations)
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((5 * 7, 3), np.float32)
-objp[:, :2] = np.mgrid[0:7, 0:5].T.reshape(-1, 2)
+objp = np.zeros((5 * 7, 3), np.float32)  # corner points in 3D space - 35 points with xyz coordinates
+objp[:, :2] = np.mgrid[0:7, 0:5].T.reshape(-1, 2)  # populate coordinates xy with numbers 0-6 and 0-4 in form of grid reshaped
 
 # Arrays to store object points and image points from all the images.
 objpoints = []  # 3d point in real world space
@@ -50,7 +50,7 @@ cv2.imwrite('Pics/calibresult.png', dst)
 #img = cv2.resize(img, (600, 600))
 #cv2.imshow('Pics/ob5.png', img)
 
-#img2 = cv2.imread('Pics/calibresult.png')
-#img2 = cv2.resize(img2, (600, 600))
-#cv2.imshow('calibresult', img2)
-#cv2.waitKey()
+# img2 = cv2.imread('Pics/calibresult.png')
+# img2 = cv2.resize(img2, (600, 600))
+# cv2.imshow('calibresult', img2)
+# cv2.waitKey()

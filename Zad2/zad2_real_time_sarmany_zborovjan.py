@@ -4,6 +4,25 @@ import numpy as np
 
 from zad2_spracovanie_sarmany_zborovjan import Param
 
+
+p1 = 80
+p2 = 30
+
+
+def tb1(x):
+    global p1
+    p1 = x
+
+
+def tb2(x):
+    global p2
+    p2 = x
+
+
+cv2.namedWindow("ImageWindow")
+cv2.createTrackbar("P1", "ImageWindow", 0, 100, tb1)
+cv2.createTrackbar("P2", "ImageWindow", 0, 100, tb2)
+
 cam = xiapi.Camera()
 
 #start communication
@@ -26,23 +45,44 @@ dst = cv2.undistort(img, Param["mtx"], Param["dist"], None,Param["newcameramtx"]
 x, y, w, h = Param["roi"]
 dst = dst[y:y + h, x:x + w]
 
-#start data acquisition
+mtx = Param["mtx"]
+print(f"f_x: {mtx[0, 0]}\nf_y: {mtx[1, 1]}\nc_x: {mtx[0, 2]}\nc_y: {mtx[1, 2]}")
+
+#  start data acquisition
 print('Starting data acquisition...')
 cam.start_acquisition()
 
 
 while cv2.waitKey() != ord('q'):
+    cam.get_image(img)
+    image = img.get_image_data_numpy()
+    image = cv2.resize(image, (240, 240))  # for this size was found distortion
+    dst = cv2.undistort(image, Param["mtx"], Param["dist"], None, Param["newcameramtx"])
+    x, y, w, h = Param["roi"]
+    dst = dst[y:y + h, x:x + w]
+    dst = cv2.resize(dst, (500, 500))
 
-        cam.get_image(img)
-        image = img.get_image_data_numpy()
-        image = cv2.resize(image, (500, 500))
-        cv2.imshow("test", image)
+    gimg = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)
+    dst2 = dst.copy()
+    circles = cv2.HoughCircles(gimg, cv2.HOUGH_GRADIENT, 1, 10, param1=p1, param2=p2, minRadius=1, maxRadius=-1)
+    try:
+        circles = np.uint16(np.around(circles))
+        for i in circles[0, :]:
+            cv2.circle(dst2, (i[0], i[1]), i[2], (0, 255, 0), 2)  # draw the outer circle
+            cv2.circle(dst2, (i[0], i[1]), 2, (0, 0, 255), 3)  # draw the center of the circle
+            cv2.putText(dst2, str(2*i[2]), (i[0], i[1]-5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1,
+                        cv2.LINE_AA)
+    except TypeError:
+        pass
 
-#stop data acquisition
+    cv2.imshow("test", dst)
+    cv2.imshow("circles", dst2)
+
+# stop data acquisition
 print('Stopping acquisition...')
 cam.stop_acquisition()
 
-#stop communication
+# stop communication
 cam.close_device()
 
 print('Done.')
