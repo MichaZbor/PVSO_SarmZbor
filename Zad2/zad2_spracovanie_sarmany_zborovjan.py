@@ -30,7 +30,6 @@ for fname in images:
 
                 # Draw and display the corners
                 cv2.drawChessboardCorners(img, (7, 5), corners2, ret)
-
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 
 img = cv2.imread('Pics/ob5.png')
@@ -39,7 +38,7 @@ newcameramtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
 # undistort
 dst = cv2.undistort(img, mtx, dist, None, newcameramtx)
 
-Param = {"mtx":mtx, "dist":dist, "newcaeramtx":newcameramtx,"roi":roi}
+Param = {"mtx":mtx, "dist":dist, "newcameramtx":newcameramtx,"roi":roi}
 
 # crop the image
 x, y, w, h = roi
@@ -47,10 +46,11 @@ dst = dst[y:y + h, x:x + w]
 cv2.imwrite('Pics/calibresult.png', dst)
 
 
-#img = cv2.resize(img, (600, 600))
-#cv2.imshow('Pics/ob5.png', img)
 
-# img2 = cv2.imread('Pics/calibresult.png')
-# img2 = cv2.resize(img2, (600, 600))
-# cv2.imshow('calibresult', img2)
-# cv2.waitKey()
+img = cv2.resize(img, (600, 600))
+cv2.imshow('Pics/ob5.png', img)
+
+img2 = cv2.imread('Pics/calibresult.png')
+img2 = cv2.resize(img2, (600, 600))
+cv2.imshow('calibresult', img2)
+cv2.waitKey()
