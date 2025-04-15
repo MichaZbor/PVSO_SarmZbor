@@ -70,8 +70,10 @@ if __name__ == '__main__':
 
     # Aplikácia DoG filtra na obrázok
     dog_image = convolve2d(image, dog_kernel)
-    print(dog_image)
+    
     # 5. Zobrazenie výsledkov pomocou OpenCV
+    image = cv2.resize(image, (360, 360))
+    dog_image = cv2.resize(dog_image, (360, 360))
     cv2.imshow("Pôvodný obrázok", image)
     cv2.imshow("DoG aplikovaný na obrázok", cv2.normalize(dog_image, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8))
 
@@ -80,9 +82,8 @@ if __name__ == '__main__':
     color_histogram = np.zeros((intensity_bins, 3), dtype=int)
 
     # Spracovanie obrazu s rozmermi 240x240
-    height, width = 240, 240
-    for y in range(height):
-        for x in range(width):
+    for y in range(240):
+        for x in range(240):
             pixel = image1[y, x]  # pixel = [B, G, R]
             for channel in range(3):  # pre každý farebný kanál
                 value = pixel[channel]
@@ -91,18 +92,19 @@ if __name__ == '__main__':
 
     # Vykreslenie histogramu farebných intenzít
     plt.figure(figsize=(10, 5))
-    colors = ['blue', 'green', 'red']
-    labels = ['Blue', 'Green', 'Red']
+    colors = ['red', 'green', 'blue']
+    labels = ['Red', 'Green', 'Blue']
 
     for i in range(3):
         plt.plot(color_histogram[:, i], color=colors[i], label=labels[i])
 
-    plt.title("Distribúcia intenzít BGR farieb v obrázku (240x240)")
-    plt.xlabel("Interval intenzity (10 jednotiek)")
-    plt.ylabel("Počet pixelov")
+    plt.title("Distribúcia intenzít RGB farieb v obrázku (240x240)")
+    plt.xlabel("Interval intenzity (10 pixelov)")
+    plt.ylabel("Pixely")
     plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
+    plt.grid()
     plt.show()
-    cv2.waitKey( )
+
+    # Vykreslenie histogramu farebných intenzít
+    cv2.waitKey()
     cv2.destroyAllWindows()
