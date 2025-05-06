@@ -1,3 +1,5 @@
+from collections import Counter
+
 import open3d as o3d
 import numpy as np
 from sklearn.cluster import KMeans
@@ -220,15 +222,67 @@ def cluster_by_kmeans(pcd, n_clusters=3, kmeans_kwargs=None):
         raise e
 
 
-if __name__ == "__main__":
-    pcd_file_path = "Clouds/output3611.pcd"
-    ransac_dist_threshold = [0.06, 0.08]  # RANSAC distance threshold for each iteration
-    ransac_num_pts = 4  # RANSAC points to sample
+def filter_clusters_by_size(colored_pcd, min_points_per_cluster):
+    """
+    Filters a colored point cloud to keep only clusters (identified by unique colors)
+    that have at least 'min_points_per_cluster'.
+
+    Args:
+        colored_pcd (open3d.geometry.PointCloud): The input point cloud, assumed to have
+                                                  colors assigned per cluster.
+        min_points_per_cluster (int): The minimum number of points a color group
+                                      must have to be kept.
+
+    Returns:
+        open3d.geometry.PointCloud: A new point cloud containing only the points
+                                    from clusters that meet the size requirement.
+                                    Returns an empty point cloud if no clusters meet
+                                    the criteria or if input is invalid.
+    """
+
+    if min_points_per_cluster <= 0:
+        print("Filter_clusters: min_points_per_cluster should be positive. Returning original cloud.")
+        return copy.deepcopy(colored_pcd)
+
+    points = np.asarray(colored_pcd.points)
+    colors = np.asarray(colored_pcd.colors)
+
+    rounded_colors_tuples = [tuple(np.round(c, decimals=4)) for c in colors]
+    color_counts = Counter(rounded_colors_tuples)
+
+    print(f"Filter_clusters: Found {len(color_counts)} unique colors (clusters).")
+
+    # Identify colors that meet the minimum point threshold
+    colors_to_keep = {color for color, count in color_counts.items() if count >= min_points_per_cluster}
+
+    if not colors_to_keep:
+        print(f"Filter_clusters: No clusters found with at least {min_points_per_cluster} points.")
+        return o3d.geometry.PointCloud()
+
+    print(f"Filter_clusters: Keeping {len(colors_to_keep)} clusters that meet the size threshold of {min_points_per_cluster} points.")
+
+    # Create a boolean mask for points to keep
+    # This is more efficient than building a list of indices for very large clouds
+    keep_mask = np.array([rounded_color_tuple in colors_to_keep for rounded_color_tuple in rounded_colors_tuples])
+
+    # Select points and their original colors using the mask
+    filtered_pcd = colored_pcd.select_by_index(np.where(keep_mask)[0])
+
+    print(f"Filter_clusters: Original points: {len(points)}, Filtered points: {len(filtered_pcd.points)}")
+
+    return filtered_pcd
+
+
+def main(path: str, ransac_dist_threshold: list, ransac_num_pts: int, dbscan_eps: float, dbscan_min_pts: int,
+         kmeans_n_clusters: int, min_points_per_cluster: int):
+    pcd_file_path = path
+    ransac_dist_threshold = ransac_dist_threshold  # RANSAC distance threshold for each iteration
+    ransac_num_pts = ransac_num_pts  # RANSAC points to sample
 
     # Clustering Parameters for DBSCAN and K-Means (Needs tuning)
-    dbscan_eps = 0.1  # DBSCAN: Max distance between points for neighborhood
-    dbscan_min_pts = 15  # DBSCAN: Min points to form a cluster
-    kmeans_n_clusters = 5  # K-Means: How many clusters to find
+    dbscan_eps = dbscan_eps  # DBSCAN: Max distance between points for neighborhood
+    dbscan_min_pts = dbscan_min_pts  # DBSCAN: Min points to form a cluster
+    kmeans_n_clusters = kmeans_n_clusters  # K-Means: How many clusters to find
 
     # Load Point Cloud
     try:
@@ -266,7 +320,8 @@ if __name__ == "__main__":
         print(f"  Removed {len(points_removed_iter.points)} points in this iteration.")
         current_pcd = points_kept_iter
 
-    points_kept_final, _ = current_pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+    points_kept_final, _ = current_pcd.remove_statistical_outlier(nb_neighbors=30, std_ratio=2.0)
+    points_kept_final, _ = points_kept_final.remove_statistical_outlier(nb_neighbors=20, std_ratio=1.2)
 
     print("--- RANSAC Processing Complete ---")
     print(
@@ -280,20 +335,27 @@ if __name__ == "__main__":
 
     # DBSCAN
     print(f"Running DBSCAN (eps={dbscan_eps}, min_points={dbscan_min_pts})")
-    dbscan_colored_pcd = cluster_by_dbscan(target_pcd_for_clustering, eps=dbscan_eps, min_points=dbscan_min_pts, print_progress=True)
-
+    dbscan_colored_pcd = cluster_by_dbscan(target_pcd_for_clustering, eps=dbscan_eps, min_points=dbscan_min_pts,
+                                           print_progress=True)
+    dbscan_colored_pcd_filtered = filter_clusters_by_size(dbscan_colored_pcd, min_points_per_cluster)
     if dbscan_colored_pcd:
         print("Visualizing DBSCAN results (Noise is Gray)")
-        o3d.visualization.draw_geometries([dbscan_colored_pcd], window_name=f"DBSCAN")
+        o3d.visualization.draw_geometries([dbscan_colored_pcd_filtered], window_name=f"DBSCAN")
     else:
         print("DBSCAN clustering failed or produced no result to visualize.")
 
     # K-Means
     print(f"Running K-Means (n_clusters={kmeans_n_clusters})")
     kmeans_colored_pcd = cluster_by_kmeans(target_pcd_for_clustering, n_clusters=kmeans_n_clusters)
+    kmeans_colored_pcd_filtered = filter_clusters_by_size(kmeans_colored_pcd, min_points_per_cluster)
 
     if kmeans_colored_pcd:
         print("Visualizing K-Means results")
-        o3d.visualization.draw_geometries([kmeans_colored_pcd], window_name=f"K-Means")
+        o3d.visualization.draw_geometries([kmeans_colored_pcd_filtered], window_name=f"K-Means")
     else:
         print("K-Means clustering failed or produced no result to visualize.")
+
+
+if __name__ == "__main__":
+    # main("Clouds/output3611.pcd", [0.06, 0.08], 4, 0.035, 15, 2, 50)
+    main("Clouds/Pl_Major_4M_downsampled.ply", [0.06,], 4, 0.35, 15, 20, 50)
